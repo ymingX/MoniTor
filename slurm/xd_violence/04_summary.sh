@@ -15,10 +15,10 @@ xd_violence_dir="/your/path/to/xd_violence"
 # Set paths
 root_path="${xd_violence_dir}/frames"
 annotationfile_path="${xd_violence_dir}/annotations/anomaly_test.txt"
-llm_model_name="llama-2-13b-chat"
+llm_model_name="qwen3-vl-4b"
 batch_size=1
 frame_interval=16
-api_key="your_api_key"
+model_path="$MODEL_PATH"
 num_job=180
 
 context_prompt="your_context_prompt"
@@ -54,5 +54,5 @@ python -u /root/autodl-tmp/lavad-main/src/models/xd_04.py \
     --format_prompt "$format_prompt" \
     --output_scores_dir "$output_scores_dir" \
     --captions_dir "$captions_dir" \
-    --api_key "$api_key" \
+    --model_path "$model_path" \
     --num_jobs "$num_job"

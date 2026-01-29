@@ -18,10 +18,10 @@ ucf_crime_dir="/your/path/to/ucf_crime"
 # Set paths
 root_path="${ucf_crime_dir}/frame"
 annotationfile_path="${ucf_crime_dir}/annotations/test.txt"
-llm_model_name="llama-2-13b-chat"
+llm_model_name="qwen3-vl-4b"
 batch_size=1
 frame_interval=16
-api_key="your_api_key"
+model_path="$MODEL_PATH"
 num_job=200
 context_prompt= "your_context_prompt(English/Chinese)"
 #"If you were a law enforcement agency, how would you rate the described scenes on a scale from 0 to 1, where 0 represents a standard scene and 1 represents a scene involving suspicious activities such as abuse (intentionally harming or mistreating others), arrest (legally detaining someone), arson (deliberately setting fire), assault (physical attack on someone), burglary (illegally entering with the intent to commit a crime), disorderly conduct (disruptive or destructive behavior), explosion (violent release of energy), fighting (violent confrontation), robbery (unlawfully taking property), shooting (firing a gun), shoplifting (stealing from a retail store), theft (taking someone else’s property without permission), or vandalism (deliberate destruction of property)?"(Recommended)
@@ -58,5 +58,5 @@ torchrun \
     --format_prompt "$format_prompt" \
     --output_scores_dir "$output_scores_dir" \
     --captions_dir "$captions_dir"  \
-    --api_key "$api_key" \
+    --model_path "$model_path" \
     --num_job "$num_job"

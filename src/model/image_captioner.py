@@ -5,11 +5,11 @@ from pathlib import Path
 
 import torch
 from tqdm import tqdm
-from transformers import Blip2ForConditionalGeneration, Blip2Processor
 
 from src.data.video_record import VideoRecord
 from src.utils.image_utils import load_images_from_paths
 from src.utils.path_utils import find_unprocessed_videos
+from src.model.qwen3_vl_client import Qwen3VLClient
 
 os.environ['HF_ENDPOINT'] = 'https://hf-mirror.com'
 
@@ -28,18 +28,14 @@ class ImageCaptioner:
         self.frame_interval = frame_interval
         self.imagefile_template = imagefile_template
         self.dtype = self._get_dtype(dtype_str)
-        self.device = "cuda" if torch.cuda.is_available() else "cpu"
- 
-
-        self.processor = Blip2Processor.from_pretrained("Blip2")
-        self.model = Blip2ForConditionalGeneration.from_pretrained(
-            "Blip2", torch_dtype=self.dtype
-        )
-        self.model.to(self.device)
+        self.qwen = Qwen3VLClient(model_path=pretrained_model_name, dtype_str=dtype_str)
         self.output_dir = Path(output_dir)
 
     def _get_dtype(self, dtype_str):
         return torch.float16 if dtype_str == "float16" else torch.float32
+
+    def _caption_image(self, image):
+        return self.qwen.generate_caption(image)
 
     def process_video(self, video):
         print(video.path)
@@ -62,14 +58,7 @@ class ImageCaptioner:
                 for frame_idx in batch_frame_idxs
             ]
             batch_raw_images = load_images_from_paths(batch_frame_paths)
-            batch_inputs = self.processor(images=batch_raw_images, return_tensors="pt").to(
-                self.device, dtype=self.dtype
-            )
-            generated_ids = self.model.generate(**batch_inputs)
-            #generated_ids = self.model.generate(**inputs)
-            batch_generated_text = self.processor.batch_decode(
-                generated_ids, skip_special_tokens=True
-            )
+            batch_generated_text = [self._caption_image(image) for image in batch_raw_images]
 
             for frame_idx, generated_text in zip(batch_frame_idxs, batch_generated_text):
                 generated_text = generated_text.strip()
@@ -118,7 +107,10 @@ def parse_args():
     parser.add_argument("--frame_interval", type=int, default=16)
     parser.add_argument("--imagefile_template", type=str, default="{:06d}.jpg")
     parser.add_argument(
-        "--pretrained_model_name", type=str, default="Salesforce/blip2-opt-6.7b-coco"
+        "--pretrained_model_name",
+        type=str,
+        default=None,
+        help="Local Qwen3-VL-4B path. If not provided, uses MODEL_PATH env var.",
     )
     parser.add_argument("--output_dir", type=str, required=True)
     parser.add_argument(

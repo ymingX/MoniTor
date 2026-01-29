@@ -1,6 +1,7 @@
 # #OURS
 import argparse
 import json
+import os
 import re
 import time
 from pathlib import Path
@@ -11,7 +12,7 @@ from concurrent.futures import ProcessPoolExecutor
 from sklearn.feature_extraction.text import TfidfVectorizer
 from sklearn.metrics.pairwise import cosine_similarity
 from src.data.video_record import VideoRecord
-from zhipuai import ZhipuAI
+from src.model.qwen3_vl_client import Qwen3VLClient
 
 class GLMAnomalyScorer:
     def __init__(
@@ -24,6 +25,7 @@ class GLMAnomalyScorer:
         format_prompt,
         output_scores_dir,
         captions_dir,
+        model_path,
     ):
         self.api_key = api_key
         self.root_path = root_path
@@ -33,7 +35,8 @@ class GLMAnomalyScorer:
         self.format_prompt = format_prompt
         self.output_scores_dir = output_scores_dir
         self.captions_dir = captions_dir
-        self.client = ZhipuAI(api_key=self.api_key)
+        resolved_model_path = model_path or os.getenv("MODEL_PATH")
+        self.client = Qwen3VLClient(model_path=resolved_model_path)
 
         # Initialize the score queue
         self.score_queue = {score: [] for score in [0, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1.0]}
@@ -67,17 +70,17 @@ class GLMAnomalyScorer:
     def _lstm_summarize(self, texts):
         # Simulate LSTM-based summarization by combining texts into a summary
         combined_text = " ".join(texts)
-        summary = self.client.chat.completions.create(
-            model="glm-4-flash",
-            messages=[
-                {"role": "system", "content": "Please summarize the following descriptions into a concise sentence."},
-                {"role": "user", "content": combined_text}
+        summary = self.client.generate_text(
+            [
+                {
+                    "role": "system",
+                    "content": "Please summarize the following descriptions into a concise sentence.",
+                },
+                {"role": "user", "content": combined_text},
             ],
-            stream=False,
-            timeout=30,
-            temperature=0.6
-        ).choices[0].message.content.strip()
-        return summary
+            max_new_tokens=64,
+        )
+        return summary.strip()
 
     def _calculate_similarity(self, text1, text2):
         # Use TF-IDF Vectorizer to convert text to vectors
@@ -153,16 +156,13 @@ class GLMAnomalyScorer:
                                     "Please provide a concise prediction based on the current context.\n"
                                     "Please provide the prediction in a concise sentence, focusing on describing the behavior or event that might occur next in the scene, avoiding any additional explanations.")
                 prediction_response = self.client.chat.completions.create(
-                    model="glm-4-flash",
                     messages=[
                         {"role": "system", "content": prediction_prompt},
                         {"role": "user", "content": f"The description of the previous frame is: '{previous_caption}', please provide the description of the next frame."}
                     ],
-                    stream=False,
-                    timeout=60,
-                    temperature=0.6
+                    max_new_tokens=128,
                 )
-                prediction_result = prediction_response.choices[0].message.content.strip()
+                prediction_result = prediction_response.strip()
                 #print(f"Prediction result: {prediction_result}")
             else:
                 prediction_result = "No previous frame available for prediction"
@@ -198,18 +198,12 @@ class GLMAnomalyScorer:
             results = []
             for dialog, frame_idx in zip(scoring_dialogs, batch_frame_idxs):
                 try:
-                    response = self.client.chat.completions.create(
-                        model="glm-4-flash",
-                        messages=dialog,
-                        stream=False,
-                        timeout=60,  # Increase timeout
-                        temperature=0.6  # Lower temperature to reduce randomness
-                    )
+                    response = self.client.generate_text(dialog, max_new_tokens=128)
                 except Exception as e:
                     print(f"API request failed during scoring: {e}")
                     continue
 
-                result_content = response.choices[0].message.content
+                result_content = response
                 results.append({"generation": {"content": result_content, "prompt": dialog[0]["content"], "caption": dialog[1]["content"]}})
 
             # Process scoring results
@@ -277,6 +271,7 @@ def run(
     output_scores_dir,
     captions_dir,
     api_key,
+    model_path,
     num_jobs,
 ):
     video_list = [VideoRecord(x.strip().split(), root_path) for x in open(annotationfile_path)]
@@ -290,6 +285,7 @@ def run(
         "format_prompt": format_prompt,
         "output_scores_dir": output_scores_dir,
         "captions_dir": captions_dir,
+        "model_path": model_path,
     }
 
     with ProcessPoolExecutor(max_workers=num_jobs) as executor:
@@ -305,7 +301,13 @@ def parse_args():
     parser.add_argument("--format_prompt", type=str)
     parser.add_argument("--output_scores_dir", type=str)
     parser.add_argument("--captions_dir", type=str)
-    parser.add_argument("--api_key", type=str)
+    parser.add_argument("--api_key", type=str, default=None)
+    parser.add_argument(
+        "--model_path",
+        type=str,
+        default=None,
+        help="Local Qwen3-VL-4B path. If not provided, uses MODEL_PATH env var.",
+    )
     parser.add_argument("--num_jobs", type=int, default=1)
     return parser.parse_args()
 
@@ -321,5 +323,6 @@ if __name__ == "__main__":
         output_scores_dir=args.output_scores_dir,
         captions_dir=args.captions_dir,
         api_key=args.api_key,
+        model_path=args.model_path,
         num_jobs=args.num_jobs,
     )

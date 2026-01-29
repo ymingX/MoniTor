@@ -15,13 +15,10 @@ annotationfile_path="${ucf_crime_dir}/annotations/test.txt"
 batch_size=64
 frame_interval=16
 
-# Define pretrained model names array
+# Qwen3-VL-4B local path is provided by environment variable MODEL_PATH
+# Example (bash): export MODEL_PATH=/your/local/Qwen3-VL-4B
 pretrained_model_names=(
-    "Salesforce/blip2-opt-6.7b-coco"
-    "Salesforce/blip2-opt-6.7b"
-    "Salesforce/blip2-flan-t5-xxl"
-    "Salesforce/blip2-flan-t5-xl"
-    "Salesforce/blip2-flan-t5-xl-coco"
+    "$MODEL_PATH"
 )
 
 # Activate the virtual environment
@@ -33,7 +30,7 @@ name="your_file_name"
 pretrained_model_name="${pretrained_model_names[$SLURM_ARRAY_TASK_ID]}"
 echo "Processing model: $pretrained_model_name"
 
-output_dir="${ucf_crime_dir}/captions/raw/${pretrained_model_name}/"
+output_dir="${ucf_crime_dir}/captions/raw/qwen3-vl-4b/"
 
 # Run the Python script with the specified parameters
 python -m src.models.image_captioner \
