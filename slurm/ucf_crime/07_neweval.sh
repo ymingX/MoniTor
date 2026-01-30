@@ -20,7 +20,8 @@ num_neighbors=10
 normal_label=7
 video_fps=30
 
-context_prompt="your_context_prompt"
+# context_prompt="your_context_prompt"
+context_prompt="If you were a law enforcement agency, how would you rate the scene described on a scale from 0 to 1, with 0 representing a standard scene and 1 denoting a scene with suspicious activities?"
 #"If you were a law enforcement agency, how would you rate the scene described on a scale from 0 to 1, with 0 representing a standard scene and 1 denoting a scene with suspicious activities?"(Recommended)
 
 exp_id="2035605_002"

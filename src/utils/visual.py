@@ -1,6 +1,9 @@
+import os
+
 import matplotlib.pyplot as plt
 import numpy as np
-import os
+
+
 def visual_lys_2_func(video_name, scores, labels):
 
     fig = plt.figure(figsize=(12, 8))

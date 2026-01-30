@@ -4,11 +4,10 @@ import os
 from pathlib import Path
 
 import torch
+from src.utils.path_utils import find_unprocessed_videos
 from tqdm import tqdm
 
 from src.data.video_record import VideoRecord
-from src.utils.image_utils import load_images_from_paths
-from src.utils.path_utils import find_unprocessed_videos
 from src.model.qwen3_vl_client import Qwen3VLClient
 
 os.environ['HF_ENDPOINT'] = 'https://hf-mirror.com'
@@ -32,10 +31,12 @@ class ImageCaptioner:
         self.output_dir = Path(output_dir)
 
     def _get_dtype(self, dtype_str):
+        if dtype_str == "bfloat16":
+            return torch.bfloat16
         return torch.float16 if dtype_str == "float16" else torch.float32
 
-    def _caption_image(self, image):
-        return self.qwen.generate_caption(image)
+    def _caption_image(self, image_path):
+        return self.qwen.generate_caption(image_path)
 
     def process_video(self, video):
         print(video.path)
@@ -57,12 +58,14 @@ class ImageCaptioner:
                 Path(video.path) / self.imagefile_template.format(frame_idx)
                 for frame_idx in batch_frame_idxs
             ]
-            batch_raw_images = load_images_from_paths(batch_frame_paths)
-            batch_generated_text = [self._caption_image(image) for image in batch_raw_images]
+            batch_generated_text = [
+                self._caption_image(str(frame_path)) for frame_path in batch_frame_paths
+            ]
 
             for frame_idx, generated_text in zip(batch_frame_idxs, batch_generated_text):
                 generated_text = generated_text.strip()
                 video_captions[frame_idx] = generated_text
+                print(video_captions[frame_idx])
 
         output_path = self.output_dir / f"{video_name}.json"
         output_path.parent.mkdir(parents=True, exist_ok=True)
@@ -112,17 +115,21 @@ def parse_args():
         default=None,
         help="Local Qwen3-VL-4B path. If not provided, uses MODEL_PATH env var.",
     )
-    parser.add_argument("--output_dir", type=str, required=True)
+    # parser.add_argument("--output_dir", type=str, required=True)
+    parser.add_argument("--output_dir", type=str, default=None)  # 先设为 None
     parser.add_argument(
         "--dtype",
         type=str,
-        choices=["float16", "float32"],
-        default="float16",
-        help="Data type (float16 or float32)",
+        choices=["bfloat16", "float16", "float32"],
+        default="bfloat16",
+        help="Data type (bfloat16, float16 or float32)",
     )
     parser.add_argument("--resume", action="store_true")
     parser.add_argument("--pathname", type=str, default="*.json")
-    return parser.parse_args()
+    args = parser.parse_args()
+    if args.output_dir is None:
+        args.output_dir = f"{args.root_path}/../captions/raw/{os.path.basename(args.pretrained_model_name)}/"
+    return args
 
 
 if __name__ == "__main__":

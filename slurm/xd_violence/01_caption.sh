@@ -7,7 +7,7 @@
 #SBATCH --output=output/01_caption_xd_violence_%A_%a.out
 
 # Set the XD-Violence directory
-xd_violence_dir="/your/path/to/xd_violence/"
+xd_violence_dir="/mnt/d/qsh/1_data/xd_violence"
 
 # Set paths
 root_path="${xd_violence_dir}/frames"
@@ -21,6 +21,7 @@ pretrained_model_names=(
     "$MODEL_PATH"
 )
 
+# mingX: No need for this step. MoniTor's requirement.txt already includes all necessary packages.
 # Activate the virtual environment
 VENV_DIR="/path/to/venv/lavad"
 # shellcheck source=/dev/null

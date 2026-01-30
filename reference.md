@@ -219,23 +219,23 @@
 
 ### 工具函数
 
-#### 模块：[src/utils/image_utiles.py](src/utils/image_utiles.py)
+#### 模块：[src/utils/image_utiles.py](src/utils/image_utils.py)
 - `load_image_from_path(img_path)`：读取单张图像为 PIL。
 - `load_images_from_paths(img_paths)`：批量读取图像。
 
-#### 模块：[src/utils/plot_utiles.py](src/utils/plot_utiles.py)
+#### 模块：[src/utils/plot_utiles.py](src/utils/plot_utils.py)
 - `plot_scores(scores, labels, video_name, save_dir, normal_id=7)`
   - **作用**：绘制异常分数曲线并覆盖异常区间。
 
-#### 模块：[src/utils/sample_utiles.py](src/utils/sample_utiles.py)
+#### 模块：[src/utils/sample_utiles.py](src/utils/sample_utils.py)
 - `uniform_temporal_subsample(clip_frame_paths, num_samples)`
   - **作用**：等距采样帧路径。
 
-#### 模块：[src/utils/torch_utiles.py](src/utils/torch_utiles.py)
+#### 模块：[src/utils/torch_utiles.py](src/utils/torch_utils.py)
 - `initialize_vlm_model_and_device()`
   - **作用**：加载 ImageBind 模型并返回 `model, device`。
 
-#### 模块：[src/utils/path_utiles.py](src/utils/path_utiles.py)
+#### 模块：[src/utils/path_utiles.py](src/utils/path_utils.py)
 - `find_unprocessed_videos(video_list, output_dir, pathname)`
   - **作用**：断点续跑，跳过已处理样本。
 - `find_last_processed_video_index(video_list, last_processed_video_path)`
