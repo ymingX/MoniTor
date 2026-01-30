@@ -7,41 +7,44 @@
 #SBATCH --output=output/02_create_index_ucf_crime_%A_%a.out
 
 # Set the UCF Crime directory
-ucf_crime_dir="/your/path/to/ucf_crime"
+ucf_crime_dir="./dataset"
 
 # Set paths
 root_path="${ucf_crime_dir}/frames"
 annotationfile_path="${ucf_crime_dir}/annotations/test.txt"
-batch_size=64
-frame_interval=16
+batch_size=16
+frame_interval=15
 index_dim=1024
 
-cap_model_names=(
-    "$ucf_crime_dir/captions/raw/Salesforce/blip2-opt-6.7b-coco/"
-    "$ucf_crime_dir/captions/raw/Salesforce/blip2-opt-6.7b/"
-    "$ucf_crime_dir/captions/raw/Salesforce/blip2-flan-t5-xxl/"
-    "$ucf_crime_dir/captions/raw/Salesforce/blip2-flan-t5-xl/"
-    "$ucf_crime_dir/captions/raw/Salesforce/blip2-flan-t5-xl-coco/"
-)
+# cap_model_names=(
+#     "$ucf_crime_dir/captions/raw/Salesforce/blip2-opt-6.7b-coco/"
+#     "$ucf_crime_dir/captions/raw/Salesforce/blip2-opt-6.7b/"
+#     "$ucf_crime_dir/captions/raw/Salesforce/blip2-flan-t5-xxl/"
+#     "$ucf_crime_dir/captions/raw/Salesforce/blip2-flan-t5-xl/"
+#     "$ucf_crime_dir/captions/raw/Salesforce/blip2-flan-t5-xl-coco/"
+# )
+MODEL_NAME=$(basename "$MODEL_PATH")
+cap_model_names=( "$ucf_crime_dir/captions/raw/${MODEL_NAME}/" )
+
 
 cap_model_names_str=$(IFS=' '; echo "${cap_model_names[*]}")
 
 # Extract names and concatenate with "+"
-names=""
-IFS='/' read -ra components <<< "$cap_model_names_str"
-for component in "${components[@]}"; do
-    if [[ "$component" =~ ^blip2- ]]; then
-        names+="${component#blip2-}+"
-    fi
-done
-
+# names=""
+# IFS='/' read -ra components <<< "$cap_model_names_str"
+# for component in "${components[@]}"; do
+#     if [[ "$component" =~ ^blip2- ]]; then
+#         names+="${component#blip2-}+"
+#     fi
+# done
+names="$MODEL_NAME"
 # Remove the trailing "+" if present
 names=${names%+}
 
 echo "Creating index for $names"
 
 # Activate the virtual environment
-VENV_DIR="/path/to/venv/lavad"
+# VENV_DIR="/path/to/venv/lavad"
 # shellcheck source=/dev/null
 #source "$VENV_DIR/bin/activate"
 
