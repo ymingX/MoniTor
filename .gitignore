@@ -1,1 +1,6 @@
 MoniTor.code-workspace
+dataset
+src/data/__pycache__/
+src/preprocessing/__pycache__/
+src/model/__pycache__/
+*.pyc
