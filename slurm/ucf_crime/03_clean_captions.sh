@@ -7,7 +7,7 @@
 #SBATCH --output=output/03_clean_captions_ucf_crime_%A_%a.out
 
 # Set the UCF Crime directory
-ucf_crime_dir="/your/path/to/ucf_crime"
+ucf_crime_dir="./dataset"
 
 # Set paths
 root_path="${ucf_crime_dir}/frames"
@@ -19,16 +19,16 @@ clip_duration=10
 num_samples=10
 num_neighbors=1
 
-index_name="opt-6.7b-coco+opt-6.7b+flan-t5-xxl+flan-t5-xl+flan-t5-xl-coco"
+index_name="Qwen3-VL-4B-Instruct-AWQ-8bit"
 
 echo "Processing index: $index_name"
 
 # Activate the virtual environment
-VENV_DIR="/path/to/venv/lavad"
+# VENV_DIR="/path/to/venv/lavad"
 # shellcheck source=/dev/null
 #source "$VENV_DIR/bin/activate"
 
-captions_dir_template="$ucf_crime_dir/captions/raw/Salesforce/{}/"
+captions_dir_template="$ucf_crime_dir/captions/raw/{}/"
 index_dir="$ucf_crime_dir/index/${index_name}/index_flat_ip/"
 output_dir="${ucf_crime_dir}/captions/clean/$index_name/"
 python -m src.models.image_text_caption_cleaner \
