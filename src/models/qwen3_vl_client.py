@@ -7,11 +7,21 @@ import requests
 class Qwen3VLClient:
     def __init__(self, model_path: Optional[str] = None, dtype_str: str = "bfloat16"):
         self.server = os.getenv("VLLM_SERVER", "http://127.0.0.1:8001")
+        print(self.server)
         self.model_path = model_path or os.getenv("MODEL_PATH")
         self.timeout_s = int(os.getenv("VLLM_TIMEOUT", "600"))
         self.auto_start = os.getenv("VLLM_AUTO_START", "0") == "1"
-        if self.auto_start and self.model_path:
-            self._ensure_model_loaded()
+        # if self.auto_start and self.model_path:
+            # self._ensure_model_loaded()
+        self._ensure_model_loaded()
+
+    def _to_absolute_path(self, path: Optional[str]) -> Optional[str]:
+        """将路径转换为绝对路径"""
+        if path is None:
+            return None
+        if isinstance(path, str) and path.strip():
+            return os.path.abspath(path)
+        return path
 
     def _post(self, path: str, payload: dict, timeout: Optional[int] = None):
         r = requests.post(f"{self.server}{path}", json=payload, timeout=timeout or self.timeout_s)
@@ -26,7 +36,9 @@ class Qwen3VLClient:
     def _ensure_model_loaded(self):
         status = self._get("/status")
         if not status.get("loaded") or (self.model_path and status.get("model_path") != self.model_path):
-            self._post("/start", {"model_path": self.model_path})
+            # 将 model_path 也转换为绝对路径
+            abs_model_path = self._to_absolute_path(self.model_path)
+            self._post("/start", {"model_path": abs_model_path})
 
     def _messages_to_text(self, messages: List[dict]) -> str:
         lines = []
@@ -62,11 +74,14 @@ class Qwen3VLClient:
         prompt: str = "一句话描述摄像头画面中的场景和事件.",
         max_new_tokens: int = 64,
     ) -> str:
+        # 转换为绝对路径
+        abs_image_path = self._to_absolute_path(image_path)
+        
         resp = self._post(
             "/single",
             {
                 "text": prompt,
-                "image": image_path,
+                "image": abs_image_path,
                 "max_tokens": int(max_new_tokens),
                 "temperature": 0.0,
                 "return_perf": False,
@@ -80,7 +95,10 @@ class Qwen3VLClient:
         prompt: str = "一句话描述摄像头画面中的场景和事件.",
         max_new_tokens: int = 64,
     ) -> List[str]:
-        items = [{"text": prompt, "image": p} for p in image_paths]
+        # 将所有图像路径转换为绝对路径
+        abs_image_paths = [self._to_absolute_path(p) for p in image_paths]
+        items = [{"text": prompt, "image": p} for p in abs_image_paths]
+        
         resp = self._post(
             "/single_batch",
             {
