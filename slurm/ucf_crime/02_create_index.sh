@@ -50,6 +50,8 @@ echo "Creating index for $names"
 
 index_name="index_flat_ip"
 output_dir="${ucf_crime_dir}/index/${names}/${index_name}/"
+echo "output_dir: $output_dir"
+echo "cap_model_names: $cap_model_names"
 # shellcheck disable=SC2086 # We want to pass a list of strings
 python -m src.models.create_index \
     --index_dim "$index_dim" \

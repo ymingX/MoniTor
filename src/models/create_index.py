@@ -16,11 +16,12 @@ from src.data.video_record import VideoRecord
 from src.utils.torch_utils import initialize_vlm_model_and_device
 
 CAP_MODEL_NAMES = [
-    "blip2-flan-t5-xl",
-    "blip2-flan-t5-xl-coco",
-    "blip2-flan-t5-xxl",
-    "blip2-opt-6.7b",
-    "blip2-opt-6.7b-coco",
+    # "blip2-flan-t5-xl",
+    # "blip2-flan-t5-xl-coco",
+    # "blip2-flan-t5-xxl",
+    # "blip2-opt-6.7b",
+    # "blip2-opt-6.7b-coco",
+    "Qwen3-VL-4B-Instruct-AWQ-8bit"
 ]
 
 
