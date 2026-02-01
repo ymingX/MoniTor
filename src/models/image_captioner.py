@@ -58,9 +58,9 @@ class ImageCaptioner:
                 Path(video.path) / self.imagefile_template.format(frame_idx)
                 for frame_idx in batch_frame_idxs
             ]
-            batch_generated_text = [
-                self._caption_image(str(frame_path)) for frame_path in batch_frame_paths
-            ]
+            batch_generated_text = self.qwen.generate_caption_batch(
+                [str(frame_path) for frame_path in batch_frame_paths]
+            )
 
             for frame_idx, generated_text in zip(batch_frame_idxs, batch_generated_text):
                 generated_text = generated_text.strip()

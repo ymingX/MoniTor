@@ -1,52 +1,60 @@
 import os
 from typing import List, Optional
 
-import torch
-from modelscope import AutoProcessor, Qwen3VLForConditionalGeneration
+import requests
 
 
 class Qwen3VLClient:
     def __init__(self, model_path: Optional[str] = None, dtype_str: str = "bfloat16"):
-        resolved_path = model_path or os.getenv("MODEL_PATH")
-        if not resolved_path:
-            raise ValueError("MODEL_PATH is not set. Please set MODEL_PATH to your local Qwen3-VL-4B directory.")
+        self.server = os.getenv("VLLM_SERVER", "http://127.0.0.1:8001")
+        self.model_path = model_path or os.getenv("MODEL_PATH")
+        self.timeout_s = int(os.getenv("VLLM_TIMEOUT", "600"))
+        self.auto_start = os.getenv("VLLM_AUTO_START", "0") == "1"
+        if self.auto_start and self.model_path:
+            self._ensure_model_loaded()
 
-        self.device = "cuda" if torch.cuda.is_available() else "cpu"
-        if dtype_str == "bfloat16":
-            dtype = torch.bfloat16
-        elif dtype_str == "float16":
-            dtype = torch.float16
-        else:
-            dtype = torch.float32
+    def _post(self, path: str, payload: dict, timeout: Optional[int] = None):
+        r = requests.post(f"{self.server}{path}", json=payload, timeout=timeout or self.timeout_s)
+        r.raise_for_status()
+        return r.json()
 
-        self.model = Qwen3VLForConditionalGeneration.from_pretrained(
-            resolved_path, dtype=dtype, device_map="auto"
-        ).eval()
-        self.processor = AutoProcessor.from_pretrained(resolved_path)
+    def _get(self, path: str, timeout: Optional[int] = None):
+        r = requests.get(f"{self.server}{path}", timeout=timeout or 30)
+        r.raise_for_status()
+        return r.json()
 
-    def _build_inputs(self, messages: List[dict]):
-        inputs = self.processor.apply_chat_template(
-            messages,
-            tokenize=True,
-            add_generation_prompt=True,
-            return_dict=True,
-            return_tensors="pt",
-        )
-        return inputs.to(self.model.device)
+    def _ensure_model_loaded(self):
+        status = self._get("/status")
+        if not status.get("loaded") or (self.model_path and status.get("model_path") != self.model_path):
+            self._post("/start", {"model_path": self.model_path})
 
-    def _decode_output(self, inputs, output_ids):
-        output_ids_trimmed = [
-            out_ids[len(in_ids) :] for in_ids, out_ids in zip(inputs.input_ids, output_ids)
-        ]
-        output_text = self.processor.batch_decode(
-            output_ids_trimmed, skip_special_tokens=True, clean_up_tokenization_spaces=False
-        )
-        return output_text[0]
+    def _messages_to_text(self, messages: List[dict]) -> str:
+        lines = []
+        for msg in messages:
+            role = msg.get("role", "user")
+            content = msg.get("content", "")
+            if isinstance(content, list):
+                parts = []
+                for item in content:
+                    if item.get("type") == "text":
+                        parts.append(item.get("text", ""))
+                content = " ".join(parts)
+            lines.append(f"{role}: {content}")
+        return "\n".join(lines)
 
     def generate_text(self, messages: List[dict], max_new_tokens: int = 128) -> str:
-        inputs = self._build_inputs(messages)
-        output_ids = self.model.generate(**inputs, max_new_tokens=max_new_tokens)
-        return self._decode_output(inputs, output_ids)
+        text = self._messages_to_text(messages)
+        resp = self._post(
+            "/single",
+            {
+                "text": text,
+                "image": None,
+                "max_tokens": int(max_new_tokens),
+                "temperature": 0.0,
+                "return_perf": False,
+            },
+        )
+        return resp.get("text", "")
 
     def generate_caption(
         self,
@@ -54,15 +62,33 @@ class Qwen3VLClient:
         prompt: str = "一句话描述摄像头画面中的场景和事件.",
         max_new_tokens: int = 64,
     ) -> str:
-        messages = [
+        resp = self._post(
+            "/single",
             {
-                "role": "user",
-                "content": [
-                    {"type": "image", "image": image_path},
-                    {"type": "text", "text": prompt},
-                ],
-            }
-        ]
-        inputs = self._build_inputs(messages)
-        output_ids = self.model.generate(**inputs, max_new_tokens=max_new_tokens)
-        return self._decode_output(inputs, output_ids)
+                "text": prompt,
+                "image": image_path,
+                "max_tokens": int(max_new_tokens),
+                "temperature": 0.0,
+                "return_perf": False,
+            },
+        )
+        return resp.get("text", "")
+
+    def generate_caption_batch(
+        self,
+        image_paths: List[str],
+        prompt: str = "一句话描述摄像头画面中的场景和事件.",
+        max_new_tokens: int = 64,
+    ) -> List[str]:
+        items = [{"text": prompt, "image": p} for p in image_paths]
+        resp = self._post(
+            "/single_batch",
+            {
+                "items": items,
+                "max_tokens": int(max_new_tokens),
+                "temperature": 0.0,
+                "return_perf": False,
+            },
+        )
+        results = resp.get("results", [])
+        return [r.get("output_text", "") for r in results]
