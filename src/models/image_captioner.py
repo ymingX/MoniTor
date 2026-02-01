@@ -8,7 +8,7 @@ from src.utils.path_utils import find_unprocessed_videos
 from tqdm import tqdm
 
 from src.data.video_record import VideoRecord
-from src.model.qwen3_vl_client import Qwen3VLClient
+from src.models.qwen3_vl_client import Qwen3VLClient
 
 os.environ['HF_ENDPOINT'] = 'https://hf-mirror.com'
 

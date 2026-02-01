@@ -36,7 +36,7 @@ echo "Processing model: $pretrained_model_name"
 # output_dir="${ucf_crime_dir}/captions/raw/${pretrained_model_name}/"
 
 # Run the Python script with the specified parameters
-python -m src.model.image_captioner \
+python -m src.models.image_captioner \
     --root_path "$root_path" \
     --annotationfile_path "$annotationfile_path" \
     --batch_size "$batch_size" \

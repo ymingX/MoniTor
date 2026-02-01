@@ -12,7 +12,7 @@ from concurrent.futures import ProcessPoolExecutor
 from sklearn.feature_extraction.text import TfidfVectorizer
 from sklearn.metrics.pairwise import cosine_similarity
 from src.data.video_record import VideoRecord
-from src.model.qwen3_vl_client import Qwen3VLClient
+from src.models.qwen3_vl_client import Qwen3VLClient
 
 class GLMAnomalyScorer:
     def __init__(
