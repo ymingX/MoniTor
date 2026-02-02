@@ -192,7 +192,7 @@ class ImageTextCaptionCleaner:
         output_path = self.output_dir / f"{video_name}.json"
         output_path.parent.mkdir(parents=True, exist_ok=True)
         with open(output_path, "w") as f:
-            json.dump(video_captions_retrieved, f, indent=4)
+            json.dump(video_captions_retrieved, f, indent=4,ensure_ascii=False)
 
 
 def run(
