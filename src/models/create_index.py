@@ -158,7 +158,7 @@ def save_results(index, file_names, output_dir, video_name):
     faiss.write_index(index, str(output_dir / f"{video_name}.bin"))
     # Save file names
     with open(output_dir / f"{video_name}.json", "w") as f:
-        json.dump(file_names, f)
+        json.dump(file_names, f, ensure_ascii=False)
 
 
 def main(

@@ -141,24 +141,24 @@ class VideoTextScoreRefiner:
         output_path = self.output_summary_dir / f"{video_name}.json"
         output_path.parent.mkdir(parents=True, exist_ok=True)
         with open(output_path, "w") as f:
-            json.dump(video_captions_nn, f, indent=4)
+            json.dump(video_captions_nn, f, indent=4, ensure_ascii=False)
 
         output_path = self.output_similarity_dir / f"{video_name}.json"
         output_path.parent.mkdir(parents=True, exist_ok=True)
         with open(output_path, "w") as f:
-            json.dump(video_similarity_nn, f, indent=4)
+            json.dump(video_similarity_nn, f, indent=4, ensure_ascii=False)
 
         
         output_path = self.output_indices_dir / f"{video_name}.json"
         output_path.parent.mkdir(parents=True, exist_ok=True)
         with open(output_path, "w") as f:
-            json.dump(video_pos_nn, f, indent=4)
+            json.dump(video_pos_nn, f, indent=4, ensure_ascii=False)
         
         
         output_path = self.output_filenames_dir / f"{video_name}.json"
         output_path.parent.mkdir(parents=True, exist_ok=True)
         with open(output_path, "w") as f:
-            json.dump(ret_file_names_nn, f, indent=4)
+            json.dump(ret_file_names_nn, f, indent=4, ensure_ascii=False)
 
     def retrieve_nn(self, video: VideoRecord):
         video_name = Path(video.path).name
