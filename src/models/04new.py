@@ -152,14 +152,16 @@ class GLMAnomalyScorer:
                                     "such as abuse, arrest, arson, assault, burglary, disturbing the peace, explosion, fighting, robbery, shooting, stealing, shoplifting, or vandalism. "
                                     "Please provide a concise prediction based on the current context.\n"
                                     "Please provide the prediction in a concise sentence, focusing on describing the behavior or event that might occur next in the scene, avoiding any additional explanations.")
-                prediction_response = self.client.chat.completions.create(
-                    messages=[
+                prediction_result = self.client.generate_text(
+                    [
                         {"role": "system", "content": prediction_prompt},
-                        {"role": "user", "content": f"The description of the previous frame is: '{previous_caption}', please provide the description of the next frame."}
+                        {
+                            "role": "user",
+                            "content": f"The description of the previous frame is: '{previous_caption}', please provide the description of the next frame.",
+                        },
                     ],
                     max_new_tokens=128,
-                )
-                prediction_result = prediction_response.strip()
+                ).strip()
                 print(f"Prediction result: {prediction_result}")
             else:
                 prediction_result = "No previous frame available for prediction"
@@ -192,14 +194,20 @@ class GLMAnomalyScorer:
             batch_frame_idxs = frame_idxs[batch_start:batch_end]
             scoring_dialogs = self._prepare_dialogs(temporal_captions, batch_frame_idxs)
 
-            results = []
-            for dialog, frame_idx in zip(scoring_dialogs, batch_frame_idxs):
-                try:
-                    response = self.client.generate_text(dialog, max_new_tokens=128)
-                except Exception as e:
-                    print(f"API request failed during scoring: {e}")
-                    continue
+            try:
+                responses = self.client.generate_text_batch(scoring_dialogs, max_new_tokens=128)
+            except Exception as e:
+                print(f"Batch API request failed during scoring: {e}")
+                responses = []
+                for dialog in scoring_dialogs:
+                    try:
+                        responses.append(self.client.generate_text(dialog, max_new_tokens=128))
+                    except Exception as e:
+                        print(f"API request failed during scoring: {e}")
+                        responses.append("")
 
+            results = []
+            for dialog, frame_idx, response in zip(scoring_dialogs, batch_frame_idxs, responses):
                 result_content = response
                 results.append({"generation": {"content": result_content, "prompt": dialog[0]["content"], "caption": dialog[1]["content"]}})
 
@@ -236,6 +244,7 @@ class GLMAnomalyScorer:
     def process_video(self, video):
         video_name = Path(video.path).name
         temporal_captions_path = Path(self.captions_dir) / f"{video_name}.json"
+        print(temporal_captions_path)
         try:
             with open(temporal_captions_path) as f:
                 temporal_captions = json.load(f)
@@ -268,7 +277,7 @@ def run(
     output_scores_dir,
     captions_dir,
     api_key,
-        model_path,
+    model_path,
     num_jobs,
 ):
     video_list = [VideoRecord(x.strip().split(), root_path) for x in open(annotationfile_path)]
@@ -285,8 +294,16 @@ def run(
         "model_path": model_path,
     }
 
-    with ProcessPoolExecutor(max_workers=num_jobs) as executor:
-        executor.map(process_video_parallel, video_list, [scorer_params] * len(video_list))
+    if num_jobs <= 1:
+        scorer = GLMAnomalyScorer(**scorer_params)
+        for video in video_list:
+            try:
+                scorer.process_video(video)
+            except Exception as e:
+                print(f"Processing failed for {video.path}: {e}")
+    else:
+        with ProcessPoolExecutor(max_workers=num_jobs) as executor:
+            executor.map(process_video_parallel, video_list, [scorer_params] * len(video_list))
 
 def parse_args():
     parser = argparse.ArgumentParser()
@@ -309,7 +326,9 @@ def parse_args():
     return parser.parse_args()
 
 if __name__ == "__main__":
+    print("04:summary")
     args = parse_args()
+    print(args)
     run(
         root_path=args.root_path,
         annotationfile_path=args.annotationfile_path,
