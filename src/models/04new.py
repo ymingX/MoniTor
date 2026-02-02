@@ -330,7 +330,7 @@ def parse_args():
     parser.add_argument("--root_path", type=str, required=True)
     parser.add_argument("--annotationfile_path", type=str, required=True)
     parser.add_argument("--batch_size", type=int, default=1)
-    parser.add_argument("--frame_interval", type=int, default=16)
+    parser.add_argument("--frame_interval", type=int, default=15)
     parser.add_argument("--context_prompt", type=str)
     parser.add_argument("--format_prompt", type=str)
     parser.add_argument("--output_scores_dir", type=str)

@@ -16,21 +16,21 @@ export CUDA_VISIBLE_DEVICES=0
 ucf_crime_dir="./dataset"
 
 # Set paths
-root_path="${ucf_crime_dir}/frame"
+root_path="${ucf_crime_dir}/frames"
 annotationfile_path="${ucf_crime_dir}/annotations/test.txt"
 llm_model_name="Qwen3-VL"
 batch_size=1
-frame_interval=16
+frame_interval=1
 model_path="$MODEL_PATH"
-num_job=200
+num_job=8
 # context_prompt= "your_context_prompt(English/Chinese)"
-context_prompt= " If you were a law enforcement agency, how would you rate the described scenes on a scale from 0 to 1, \
+context_prompt="If you were a law enforcement agency, how would you rate the described scenes on a scale from 0 to 1, \
         where 0 represents a standard scene and 1 represents a scene involving suspicious activities such as \
         abuse (intentionally harming or mistreating others), arrest (legally detaining someone), arson (deliberately setting fire), \
         assault (physical attack on someone), burglary (illegally entering with the intent to commit a crime), 
         disorderly conduct (disruptive or destructive behavior), explosion (violent release of energy), fighting (violent confrontation), \
         robbery (unlawfully taking property),  shoplifting (stealing from a retail store), \
-        theft (taking someone else’s property without permission), or vandalism (deliberate destruction of property)?\ "
+        theft (taking someone else’s property without permission), or vandalism (deliberate destruction of property)? "
 #"If you were a law enforcement agency, how would you rate the described scenes on a scale from 0 to 1, where 0 represents a standard scene and 1 represents a scene involving suspicious activities such as abuse (intentionally harming or mistreating others), arrest (legally detaining someone), arson (deliberately setting fire), assault (physical attack on someone), burglary (illegally entering with the intent to commit a crime), disorderly conduct (disruptive or destructive behavior), explosion (violent release of energy), fighting (violent confrontation), robbery (unlawfully taking property), shooting (firing a gun), shoplifting (stealing from a retail store), theft (taking someone else’s property without permission), or vandalism (deliberate destruction of property)?"(Recommended)
 
 # format_prompt="your_format_prompt"
@@ -43,7 +43,7 @@ summary_prompt="your_summary_prompt"
 # index_name="opt-6.7b-coco+opt-6.7b+flan-t5-xxl+flan-t5-xl+flan-t5-xl-coco"
 index_name="Qwen3-VL-4B-Instruct-AWQ-8bit"
 echo "Processing index: $index_name"
-captions_dir="${ucf_crime_dir}/captions/summary/${llm_model_name}/${index_name}/"
+captions_dir="${ucf_crime_dir}/captions/clean/${llm_model_name}/${index_name}/"
 dir_name="prior+prediction"
 
 
@@ -57,8 +57,22 @@ output_scores_dir="${ucf_crime_dir}/scores/raw/${llm_model_name}/${index_name}/$
 output_summary_dir="${ucf_crime_dir}/captions/summary/${llm_model_name}/$index_name/"
 
 # Run the Python script with the specified parameters
-torchrun \
-    --nproc_per_node 2 --nnodes 1 -m src.models.04new \
+# torchrun \
+#     --nproc_per_node 2 --nnodes 1 -m src.models.04new \
+#     --root_path "$root_path" \
+#     --annotationfile_path "$annotationfile_path" \
+#     --batch_size "$batch_size" \
+#     --frame_interval "$frame_interval" \
+#     --context_prompt "$context_prompt" \
+#     --format_prompt "$format_prompt" \
+#     --output_scores_dir "$output_scores_dir" \
+#     --captions_dir "$captions_dir"  \
+#     --model_path "$model_path" \
+#     --num_job "$num_job"
+
+
+# python -m pdb -m src.models.04new \
+python -m src.models.04new \
     --root_path "$root_path" \
     --annotationfile_path "$annotationfile_path" \
     --batch_size "$batch_size" \
@@ -68,4 +82,5 @@ torchrun \
     --output_scores_dir "$output_scores_dir" \
     --captions_dir "$captions_dir"  \
     --model_path "$model_path" \
-    --num_job "$num_job"
+    # --num_jobs "$num_job"
+    # --num_jobs 1  
