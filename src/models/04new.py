@@ -47,6 +47,13 @@ class GLMAnomalyScorer:
         self.long_term_memory = []  
         self.short_term_memory = []  
 
+    def _get_caption(self, captions, idx):
+        if str(idx) in captions:
+            return captions[str(idx)]
+        if idx in captions:
+            return captions[idx]
+        return None
+
     def _parse_score(self, response):
         pattern = r"\[(\d+(?:\.\d+)?)\]"
         match = re.search(pattern, response)
@@ -92,10 +99,15 @@ class GLMAnomalyScorer:
 
     def _prepare_memory_summaries(self, captions, current_idx):
         # Prepare long-term memory (summarizing previous 5 seconds of descriptions)
-        long_term_captions = [
-            captions[str(i)] for i in range(max(0, current_idx - 5 * self.frame_interval), current_idx, self.frame_interval)
-            if str(i) in captions
-        ]
+        long_term_captions = []
+        for i in range(
+            max(0, current_idx - 5 * self.frame_interval),
+            current_idx,
+            self.frame_interval,
+        ):
+            caption = self._get_caption(captions, i)
+            if caption is not None:
+                long_term_captions.append(caption)
         # Apply a forgetting mechanism based on similarity
         filtered_long_term_captions = []
         for caption in long_term_captions:
@@ -111,10 +123,11 @@ class GLMAnomalyScorer:
         long_term_summary = self._lstm_summarize(self.long_term_memory) if self.long_term_memory else "No long-term memory"
 
         # Prepare short-term memory (summarizing the last 2 frames)
-        short_term_captions = [
-            captions[str(current_idx - i * self.frame_interval)] for i in range(1, 3)
-            if str(current_idx - i * self.frame_interval) in captions
-        ]
+        short_term_captions = []
+        for i in range(1, 3):
+            caption = self._get_caption(captions, current_idx - i * self.frame_interval)
+            if caption is not None:
+                short_term_captions.append(caption)
         self.short_term_memory = short_term_captions[-2:]  # Keep only the latest 2 frame descriptions
         short_term_summary = self._lstm_summarize(self.short_term_memory) if self.short_term_memory else "No short-term memory"
 
@@ -126,7 +139,9 @@ class GLMAnomalyScorer:
         for score, frames in self.score_queue.items():
             if frames:
                 frame_idx = frames[-1]
-                caption = captions[str(frame_idx)]
+                caption = self._get_caption(captions, frame_idx)
+                if caption is None:
+                    continue
                 score_prompts.append(f"Event with score {score}: '{caption}'.")
         return "\n".join(score_prompts)
 
@@ -139,7 +154,10 @@ class GLMAnomalyScorer:
 
         for idx in batch_frame_idxs:
             # Current frame caption
-            current_caption = f"This is the description of the current frame: '{captions[str(idx)]}'."
+            current_caption_text = self._get_caption(captions, idx)
+            if current_caption_text is None:
+                continue
+            current_caption = f"This is the description of the current frame: '{current_caption_text}'."
 
             # Prepare long-term and short-term memory summaries
             long_term_summary, short_term_summary = self._prepare_memory_summaries(captions, idx)
@@ -147,7 +165,9 @@ class GLMAnomalyScorer:
 
             # **Construct prediction dialog**
             if idx - self.frame_interval >= 0:  # Ensure there is a previous frame
-                previous_caption = captions.get(str(idx - self.frame_interval), "No previous caption available")
+                previous_caption = self._get_caption(
+                    captions, idx - self.frame_interval
+                ) or "No previous caption available"
                 prediction_prompt = ("If you are law enforcement, please predict what might happen next in the described scene, considering potential suspicious activities or behaviors, "
                                     "such as abuse, arrest, arson, assault, burglary, disturbing the peace, explosion, fighting, robbery, shooting, stealing, shoplifting, or vandalism. "
                                     "Please provide a concise prediction based on the current context.\n"
@@ -259,7 +279,7 @@ class GLMAnomalyScorer:
         output_path = Path(self.output_scores_dir) / f"{video_name}.json"
         output_path.parent.mkdir(parents=True, exist_ok=True)
         with open(output_path, "w") as f:
-            json.dump(video_scores, f, indent=4)
+            json.dump(video_scores, f, indent=4, ensure_ascii=False)
 
         print(f"Scores successfully saved to {output_path}")
 
