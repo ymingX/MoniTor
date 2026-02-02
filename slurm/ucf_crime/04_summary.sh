@@ -10,36 +10,45 @@
 #export OMP_NUM_THREADS=${SLURM_CPUS_PER_TASK:-1}
 export OMP_NUM_THREADS=${SLURM_CPUS_PER_TASK:-16}
 
-export CUDA_VISIBLE_DEVICES=0,1
+export CUDA_VISIBLE_DEVICES=0
 
 # Set the UCF Crime directory
-ucf_crime_dir="/your/path/to/ucf_crime"
+ucf_crime_dir="./dataset"
 
 # Set paths
 root_path="${ucf_crime_dir}/frame"
 annotationfile_path="${ucf_crime_dir}/annotations/test.txt"
-llm_model_name="qwen3-vl-4b"
+llm_model_name="Qwen3-VL"
 batch_size=1
 frame_interval=16
 model_path="$MODEL_PATH"
 num_job=200
-context_prompt= "your_context_prompt(English/Chinese)"
+# context_prompt= "your_context_prompt(English/Chinese)"
+context_prompt= " If you were a law enforcement agency, how would you rate the described scenes on a scale from 0 to 1, \
+        where 0 represents a standard scene and 1 represents a scene involving suspicious activities such as \
+        abuse (intentionally harming or mistreating others), arrest (legally detaining someone), arson (deliberately setting fire), \
+        assault (physical attack on someone), burglary (illegally entering with the intent to commit a crime), 
+        disorderly conduct (disruptive or destructive behavior), explosion (violent release of energy), fighting (violent confrontation), \
+        robbery (unlawfully taking property),  shoplifting (stealing from a retail store), \
+        theft (taking someone else’s property without permission), or vandalism (deliberate destruction of property)?\ "
 #"If you were a law enforcement agency, how would you rate the described scenes on a scale from 0 to 1, where 0 represents a standard scene and 1 represents a scene involving suspicious activities such as abuse (intentionally harming or mistreating others), arrest (legally detaining someone), arson (deliberately setting fire), assault (physical attack on someone), burglary (illegally entering with the intent to commit a crime), disorderly conduct (disruptive or destructive behavior), explosion (violent release of energy), fighting (violent confrontation), robbery (unlawfully taking property), shooting (firing a gun), shoplifting (stealing from a retail store), theft (taking someone else’s property without permission), or vandalism (deliberate destruction of property)?"(Recommended)
 
-format_prompt="your_format_prompt"
+# format_prompt="your_format_prompt"
+format_prompt="Please provide the response in the form of a Python list and respond with only one number in the provided list below [0, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1.0] without any textual explanation. It should begin with '[' and end with ']'."
 #(Please provide the response in the form of a Python list and respond with only one number in the provided list below [0, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1.0] without any textual explanation. It should begin with '[' and end with ']'.)(Recommended)
 prediction_prompt="your_prediction_prompt(English/Chinese)"
 predict_format_prompt="your_predict_format_prompt"
 summary_prompt="your_summary_prompt"
 
-index_name="opt-6.7b-coco+opt-6.7b+flan-t5-xxl+flan-t5-xl+flan-t5-xl-coco"
+# index_name="opt-6.7b-coco+opt-6.7b+flan-t5-xxl+flan-t5-xl+flan-t5-xl-coco"
+index_name="Qwen3-VL-4B-Instruct-AWQ-8bit"
 echo "Processing index: $index_name"
 captions_dir="${ucf_crime_dir}/captions/summary/${llm_model_name}/${index_name}/"
 dir_name="prior+prediction"
 
 
 # Activate the virtual environment
-VENV_DIR="/path/to/venv/lavad"
+# VENV_DIR="/path/to/venv/lavad"
 # shellcheck source=/dev/null
 #source "$VENV_DIR/bin/activate"
 
