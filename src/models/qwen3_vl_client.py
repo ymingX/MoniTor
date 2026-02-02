@@ -24,12 +24,14 @@ class Qwen3VLClient:
         return path
 
     def _post(self, path: str, payload: dict, timeout: Optional[int] = None):
-        r = requests.post(f"{self.server}{path}", json=payload, timeout=timeout or self.timeout_s)
+        r = requests.post(f"{self.server}{path}", json=payload, timeout=timeout or self.timeout_s,
+                        proxies={"http": None, "https": None}  # 禁用代理  
+                        )
         r.raise_for_status()
         return r.json()
 
     def _get(self, path: str, timeout: Optional[int] = None):
-        r = requests.get(f"{self.server}{path}", timeout=timeout or 30)
+        r = requests.get(f"{self.server}{path}", timeout=timeout or 30, proxies={"http": None, "https": None} )
         r.raise_for_status()
         return r.json()
 
@@ -67,6 +69,20 @@ class Qwen3VLClient:
             },
         )
         return resp.get("text", "")
+
+    def generate_text_batch(self, messages_list: List[List[dict]], max_new_tokens: int = 128) -> List[str]:
+        items = [{"text": self._messages_to_text(m), "image": None} for m in messages_list]
+        resp = self._post(
+            "/single_batch",
+            {
+                "items": items,
+                "max_tokens": int(max_new_tokens),
+                "temperature": 0.0,
+                "return_perf": False,
+            },
+        )
+        results = resp.get("results", [])
+        return [r.get("output_text", "") for r in results]
 
     def generate_caption(
         self,
